@@ -26,8 +26,8 @@ class Cart extends ChangeNotifier {
   }
 
   double get totalAmount {
-    var total =0.0;
-    _items.forEach((key, cartItem) { 
+    var total = 0.0;
+    _items.forEach((key, cartItem) {
       total += cartItem.price * cartItem.quantity;
     });
     return total;
@@ -40,6 +40,25 @@ class Cart extends ChangeNotifier {
 
   void clear() {
     _items = {};
+    notifyListeners();
+  }
+
+  void removeSingleItem(String productId) {
+    if (!_items.containsKey(productId)) {
+      return;
+    }
+    if (_items[productId].quantity > 1) {
+      _items.update(
+        productId,
+        (existingItem) => CartItem(
+            id: existingItem.id,
+            title: existingItem.title,
+            price: existingItem.price,
+            quantity: existingItem.quantity - 1),
+      );
+    } else {
+      _items.remove(productId);
+    }
     notifyListeners();
   }
 
