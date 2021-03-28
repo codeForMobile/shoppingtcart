@@ -52,34 +52,32 @@ class Products with ChangeNotifier {
     return _items.where((element) => element.isFavorite).toList();
   }
 
-  Future<void> addProduct(Product product) {
+  Future<void> addProduct(Product product) async {
     final url = Uri.https(
         'shoppintcart-d830a-default-rtdb.firebaseio.com', '/products.json');
-    return http
-        .post(url,
-            body: json.encode({
-              'title': product.title,
-              'price': product.price,
-              'description': product.description,
-              'imageUrl': product.imageUrl,
-              'isFavorite': product.isFavorite,
-            }))
-        .then(
-      (response) {
-        final newProduct = Product(
-          imageUrl: product.imageUrl,
-          title: product.title,
-          description: product.description,
-          price: product.price,
-          id: json.decode(response.body)['name'],
-        );
-        _items.add(newProduct);
-        notifyListeners();
-      },
-    ).catchError((error) {
+    try {
+      final response = await http.post(url,
+          body: json.encode({
+            'title': product.title,
+            'price': product.price,
+            'description': product.description,
+            'imageUrl': product.imageUrl,
+            'isFavorite': product.isFavorite,
+          }));
+
+      final newProduct = Product(
+        imageUrl: product.imageUrl,
+        title: product.title,
+        description: product.description,
+        price: product.price,
+        id: json.decode(response.body)['name'],
+      );
+      _items.add(newProduct);
+      notifyListeners();
+    } catch (error) {
       print(error);
       throw error;
-    });
+    }
   }
 
   void updateProduct(String id, Product updatedProduct) {
