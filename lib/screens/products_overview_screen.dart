@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../screens/cart_screen.dart';
 import '../widgets/app_drawer.dart';
 import '../providers/cart.dart';
+import '../providers/products.dart';
 
 import '../widgets/badge.dart';
 import '../widgets/products_grid.dart';
@@ -16,6 +17,33 @@ class ProductOverviewScreen extends StatefulWidget {
 
 class _ProductOverviewScreenState extends State<ProductOverviewScreen> {
   var _showOnlyFavorites = false;
+  var _isInit = true;
+  var _isLoading = false;
+  @override
+  void initState() {
+    // Following works but still not being used to align with author.
+    //Provider.of<Products>(context, listen: false).fetchProducts();
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    if (_isInit) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      Provider.of<Products>(context, listen: false)
+          .fetchProducts()
+          .then((value) {
+        setState(() {
+          _isLoading = false;
+        });
+      });
+    }
+    _isInit = false;
+    super.didChangeDependencies();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +85,11 @@ class _ProductOverviewScreenState extends State<ProductOverviewScreen> {
         )
       ]),
       drawer: AppDrawer(),
-      body: ProductsGrid(_showOnlyFavorites),
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(),
+            )
+          : ProductsGrid(_showOnlyFavorites),
     );
   }
 }

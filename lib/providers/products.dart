@@ -2,11 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'product.dart';
+import '../models/http_exception.dart';
+import './product.dart';
 
 class Products with ChangeNotifier {
   List<Product> _items = [
-    Product(
+    /* Product(
       id: 'p1',
       title: 'Red Shirt',
       description: 'A red shirt - it is pretty red!',
@@ -37,7 +38,7 @@ class Products with ChangeNotifier {
       price: 49.99,
       imageUrl:
           'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Cast-Iron-Pan.jpg/1024px-Cast-Iron-Pan.jpg',
-    ),
+    ), */
   ];
 
   List<Product> get items {
@@ -50,6 +51,31 @@ class Products with ChangeNotifier {
 
   List<Product> get favoriteItems {
     return _items.where((element) => element.isFavorite).toList();
+  }
+
+  Future<void> fetchProducts() async {
+    final url = Uri.https(
+        'shoppintcart-d830a-default-rtdb.firebaseio.com', '/products.json');
+    try {
+      final response = await http.get(url);
+      // print(json.decode(response.body));
+      final extractedData = json.decode(response.body) as Map<String, dynamic>;
+      final List<Product> loadedProducts = [];
+      extractedData.forEach((key, value) {
+        loadedProducts.add(Product(
+          id: key,
+          title: value['title'],
+          description: value['description'],
+          price: value['price'],
+          imageUrl: value['imageUrl'],
+          isFavorite: value['isFavorite'],
+        ));
+      });
+      _items = loadedProducts;
+      notifyListeners();
+    } catch (error) {
+      throw error;
+    }
   }
 
   Future<void> addProduct(Product product) async {
@@ -80,9 +106,18 @@ class Products with ChangeNotifier {
     }
   }
 
-  void updateProduct(String id, Product updatedProduct) {
+  Future<void> updateProduct(String id, Product updatedProduct) async {
     final prodIndex = _items.indexWhere((element) => element.id == id);
     if (prodIndex >= 0) {
+      final url = Uri.https('shoppintcart-d830a-default-rtdb.firebaseio.com',
+          '/products/$id.json');
+      await http.patch(url,
+          body: json.encode({
+            'title': updatedProduct.title,
+            'description': updatedProduct.description,
+            'price': updatedProduct.price,
+            'imageUrl': updatedProduct.imageUrl
+          }));
       _items[prodIndex] = updatedProduct;
       notifyListeners();
     } else {
@@ -90,8 +125,23 @@ class Products with ChangeNotifier {
     }
   }
 
-  void deleteProduct(String id) {
-    _items.removeWhere((element) => element.id == id);
+  Future<void> deleteProduct(String id) async {
+    // Exception can only be thrown by corrupting the 2nd part of Uri.https and not the first one i.e.
+    // by doing this 
+    // final url = Uri.https(shoppintcart-d830a-default-rtdb.firebaseio.com', '/products/$id');
+    final url = Uri.https(
+        'shoppintcart-d830a-default-rtdb.firebaseio.com', '/products/$id.json');
+    final existingProductIndex =
+        _items.indexWhere((element) => element.id == id);
+    var existingProduct = _items[existingProductIndex];
+    _items.removeAt(existingProductIndex);
     notifyListeners();
+    final response = await http.delete(url);
+    if (response.statusCode >= 400) {
+      _items.insert(existingProductIndex, existingProduct);
+      notifyListeners();
+      throw HttpException('Could not delete product');
+    }
+    existingProduct = null;
   }
 }
