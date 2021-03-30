@@ -32,21 +32,21 @@ class Orders with ChangeNotifier {
     print(json.decode(response.body));
     final List<OrderItem> loadedProducts = [];
     final extractedData = json.decode(response.body) as Map<String, dynamic>;
-    if(extractedData == null) {
-      return ;
+    if (extractedData == null) {
+      return;
     }
     extractedData.forEach((OrderId, OrderData) {
       loadedProducts.add(OrderItem(
         id: OrderId,
-        amount: double.parse(OrderData['amount']) ,
+        amount: OrderData['amount'],
         orderTime: DateTime.parse(OrderData['orderTime']),
-        products: (OrderData['products'] as List<dynamic>).map(
-          (item) => CartItem(
-              id: item['id'],
-              title: item['title'],
-              quantity: item['quantity'],
-              price: double.parse(item['price'])),
-        ).toList(),
+        products: (OrderData['products'] as List<dynamic>)
+            .map((item) => CartItem(
+                id: item['id'],
+                title: item['title'],
+                quantity: item['quantity'],
+                price: item['price']))
+            .toList(),
       ));
     });
     _orders = loadedProducts.reversed.toList();
@@ -59,7 +59,7 @@ class Orders with ChangeNotifier {
     final timestamp = DateTime.now();
     final response = await http.post(url,
         body: json.encode({
-          'amount': total.toStringAsFixed(2),
+          'amount': total,
           'orderTime': timestamp.toIso8601String(),
           'products': cartProducts
               .map((cp) => {
