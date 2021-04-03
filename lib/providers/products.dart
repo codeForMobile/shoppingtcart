@@ -102,6 +102,7 @@ class Products with ChangeNotifier {
         id: json.decode(response.body)['name'],
       );
       _items.add(newProduct);
+      print(newProduct.id);
       notifyListeners();
     } catch (error) {
       print(error);
